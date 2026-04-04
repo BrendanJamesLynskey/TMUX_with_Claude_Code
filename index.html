@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>tmux with Claude Code</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/theme/black.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/plugin/highlight/monokai.min.css">
+<style>
+  :root {
+    --amber:  #f5a623;
+    --green:  #4ecb8d;
+    --purple: #a78bfa;
+    --blue:   #60a5fa;
+    --red:    #f87171;
+    --bg:     #0a0a0f;
+    --bg2:    #10101a;
+    --bg3:    #181824;
+    --border: #2a2a3a;
+    --text:   #e8e8f0;
+    --muted:  #8888a8;
+  }
+
+  .reveal-viewport { background: var(--bg); }
+  .reveal .slides section { background: transparent; }
+
+  .reveal { font-family: 'DM Sans', sans-serif; color: var(--text); }
+  .reveal h1, .reveal h2, .reveal h3 { font-family: 'Playfair Display', serif; font-weight: 700; }
+  .reveal h1 { font-size: 1.6em; color: var(--amber); line-height: 1.1; }
+  .reveal h2 { font-size: 1.1em; color: var(--amber); margin-bottom: .2em; }
+  .reveal h3 { font-size: .78em; color: var(--green); margin-bottom: .15em; }
+  .reveal p  { font-size: .56em; line-height: 1.45; color: var(--text); }
+  .reveal li { font-size: .54em; line-height: 1.45; margin-bottom: .1em; }
+  .reveal code { font-family: 'JetBrains Mono', monospace; font-size: .72em; }
+  .reveal pre  { box-shadow: none; background: var(--bg3); border: 1px solid var(--border);
+                 border-radius: 6px; padding: .3em .5em; margin: .25em 0; }
+  .reveal pre code { font-size: .52em; line-height: 1.35; background: transparent; color: #cdd6f4; }
+
+  /* slide chrome */
+  .slide-hdr {
+    display: flex; align-items: center; gap: .4em;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: .2em; margin-bottom: .3em;
+  }
+  .slide-hdr .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: .42em; font-weight: 500;
+    color: var(--bg); background: var(--amber);
+    padding: .1em .4em; border-radius: 3px;
+    letter-spacing: .04em;
+  }
+  .slide-hdr h2 { margin: 0; font-size: .95em; }
+
+  /* two-column */
+  .cols   { display: grid; gap: .5em; }
+  .cols-2 { grid-template-columns: 1fr 1fr; }
+  .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .cols-6040 { grid-template-columns: 6fr 4fr; }
+  .cols-4060 { grid-template-columns: 4fr 6fr; }
+
+  /* cards */
+  .card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 6px; padding: .35em .6em;
+  }
+  .card.amber { border-left: 3px solid var(--amber); }
+  .card.green { border-left: 3px solid var(--green); }
+  .card.purple{ border-left: 3px solid var(--purple); }
+  .card.blue  { border-left: 3px solid var(--blue); }
+  .card.red   { border-left: 3px solid var(--red); }
+  .card h3 { font-size: .64em; margin: 0 0 .12em; }
+  .card p  { font-size: .52em; margin: 0; color: #b8b8d0; }
+  .card ul { margin: 0; padding-left: 1em; }
+  .card li { font-size: .52em; color: #b8b8d0; margin-bottom: .02em; }
+
+  /* table */
+  .reveal table { width: 100%; border-collapse: collapse; font-size: .5em; }
+  .reveal table th { background: var(--bg3); color: var(--amber); font-weight: 600;
+                     padding: .2em .4em; border: 1px solid var(--border); text-align: left; }
+  .reveal table td { padding: .18em .4em; border: 1px solid var(--border); color: #ccc; }
+  .reveal table tr:nth-child(even) td { background: #0e0e18; }
+
+  /* accent spans */
+  .a  { color: var(--amber); font-weight: 600; }
+  .g  { color: var(--green); font-weight: 600; }
+  .p  { color: var(--purple); font-weight: 600; }
+  .b  { color: var(--blue); font-weight: 600; }
+  .r  { color: var(--red); font-weight: 600; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* SVG diagrams */
+  svg.diagram { display: block; margin: 0 auto; overflow: visible; }
+
+  /* pill badges */
+  .pill {
+    display: inline-block; font-family: 'JetBrains Mono', monospace;
+    font-size: .44em; padding: .08em .4em; border-radius: 99px;
+    border: 1px solid; margin: 0 .08em;
+  }
+  .pill.amber { color: var(--amber); border-color: var(--amber); }
+  .pill.green { color: var(--green); border-color: var(--green); }
+  .pill.purple{ color: var(--purple); border-color: var(--purple); }
+  .pill.blue  { color: var(--blue); border-color: var(--blue); }
+
+  .reveal .slide-footer { display: none; }
+
+  /* title slide */
+  .title-slide h1 { font-size: 1.8em; }
+  .title-slide .subtitle {
+    font-size: .7em; color: var(--green); font-family: 'DM Sans', sans-serif;
+    font-weight: 300; letter-spacing: .04em; margin: .3em 0 .6em;
+  }
+  .title-slide .meta { font-size: .48em; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  /* super-step animator */
+  .ss-row {
+    display: flex; gap: .25em; align-items: center;
+    margin: .1em 0; font-size: .55em; font-family: 'JetBrains Mono', monospace;
+  }
+  .ss-node {
+    padding: .2em .55em; border-radius: 5px; font-size: .9em;
+    background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  }
+  .ss-node.active { background: #1a2a1a; border-color: var(--green); color: var(--green); }
+  .ss-node.done   { background: #1a1a2a; border-color: var(--purple); color: var(--purple); }
+  .ss-arrow { color: var(--amber); }
+  .ss-label { font-size: .8em; color: var(--muted); margin-left: .3em; }
+
+  .reveal ul, .reveal ol { margin: .15em 0 .15em 1em; }
+  .reveal .slides > section { display: flex !important; flex-direction: column !important; overflow-y: auto !important; align-items: stretch !important; justify-content: flex-start !important; }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+
+<!-- ═══════════════════════════════ SLIDE 01 — TITLE ═══════════════════════════════ -->
+<section class="title-slide" data-background-color="#0a0a0f">
+  <div style="text-align:left; max-width:820px; margin:0 auto; padding: 1em 0;">
+    <div style="font-family:'JetBrains Mono',monospace; font-size:.5em; color:var(--muted); margin-bottom:.4em; letter-spacing:.1em;">
+      TECHNICAL PRESENTATION
+    </div>
+    <h1>tmux with<br>Claude Code</h1>
+    <div class="subtitle">Terminal Multiplexing for AI-Assisted Development</div>
+    <div style="width:60px; height:3px; background:var(--amber); margin-bottom:1.4em;"></div>
+    <div style="display:flex; gap:1.2em; flex-wrap:wrap; margin-bottom:1em;">
+      <span class="pill amber">tmux</span>
+      <span class="pill green">Claude Code</span>
+      <span class="pill purple">Terminal</span>
+      <span class="pill blue">Productivity</span>
+    </div>
+    <div class="ss-row" style="margin-top:0.6em;">
+      <span class="ss-node active">Session</span>
+      <span class="ss-arrow">&rarr;</span>
+      <span class="ss-node active">Windows</span>
+      <span class="ss-arrow">&rarr;</span>
+      <span class="ss-node active">Panes</span>
+      <span class="ss-arrow">&rarr;</span>
+      <span class="ss-node done">Claude Code</span>
+      <span class="ss-arrow">&rarr;</span>
+      <span class="ss-node done">Ship</span>
+    </div>
+    <p style="max-width:620px; color:#a0a0c0; font-size:.56em; line-height:1.5; margin-top:1em;">
+      Master terminal multiplexing with tmux &mdash; persistent sessions, split panes, and powerful workflows for Claude Code and beyond
+    </p>
+    <div class="meta" style="margin-top:1.4em;">
+      Sessions &nbsp;&middot;&nbsp; Windows &nbsp;&middot;&nbsp; Panes &nbsp;&middot;&nbsp; Workflows
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 02 — AGENDA ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">01</span>
+    <h2>Topics</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">tmux Fundamentals</h3>
+        <ul>
+          <li>What tmux is and why it matters</li>
+          <li>Installation and first session</li>
+          <li>The prefix key concept</li>
+          <li>Sessions, windows, and panes</li>
+        </ul>
+      </div>
+      <div class="card green" style="margin-top:0.5em;">
+        <h3 class="g">Session Management</h3>
+        <ul>
+          <li>Creating and naming sessions</li>
+          <li>Detaching and reattaching</li>
+          <li>Surviving SSH disconnects</li>
+          <li>Session persistence</li>
+        </ul>
+      </div>
+      <div class="card purple" style="margin-top:0.5em;">
+        <h3 class="p">Windows &amp; Panes</h3>
+        <ul>
+          <li>Creating and switching windows</li>
+          <li>Splitting panes horizontally and vertically</li>
+          <li>Resizing and navigating panes</li>
+          <li>Pane layouts</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card blue">
+        <h3 class="b">Copy Mode &amp; Scrollback</h3>
+        <ul>
+          <li>Entering and using copy mode</li>
+          <li>Searching terminal output</li>
+          <li>Copying and pasting text</li>
+          <li>Increasing scrollback buffer</li>
+        </ul>
+      </div>
+      <div class="card red" style="margin-top:0.5em;">
+        <h3 class="r">Configuration</h3>
+        <ul>
+          <li>The .tmux.conf file</li>
+          <li>Key rebinding</li>
+          <li>Status bar customisation</li>
+          <li>Mouse mode and vi keys</li>
+        </ul>
+      </div>
+      <div class="card green" style="margin-top:0.5em;">
+        <h3 class="g">Claude Code Workflows</h3>
+        <ul>
+          <li>Running Claude Code inside tmux</li>
+          <li>Parallel agent sessions</li>
+          <li>Monitoring long-running tasks</li>
+          <li>Multi-project layouts</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 03 — WHAT IS TMUX ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">02</span>
+    <h2>What Is tmux?</h2>
+  </div>
+  <div class="cols cols-6040">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Terminal Multiplexer</h3>
+        <p><span class="a">tmux</span> lets you run multiple terminal sessions inside a single terminal window.
+          Sessions persist in the background even when you disconnect &mdash; your work keeps running.</p>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">Key Benefits</h3>
+        <ul>
+          <li><span class="g">Persistence</span> &mdash; sessions survive disconnects and reboots</li>
+          <li><span class="g">Multiplexing</span> &mdash; split one terminal into many panes</li>
+          <li><span class="g">Remote work</span> &mdash; SSH into a server, start tmux, detach safely</li>
+          <li><span class="g">Reproducibility</span> &mdash; script your workspace layouts</li>
+        </ul>
+      </div>
+      <div class="card purple" style="margin-top:.5em;">
+        <h3 class="p">How It Works</h3>
+        <p>tmux runs a <span class="p">server</span> process in the background. Each terminal you see is a <span class="p">client</span> connected to that server.
+          When you close your terminal, the server keeps running &mdash; you just reconnect later.</p>
+      </div>
+    </div>
+    <div>
+      <svg class="diagram" viewBox="0 0 340 360" width="340">
+        <rect x="10" y="10" width="320" height="70" rx="8" fill="#10101a" stroke="#f5a623" stroke-width="1.5"/>
+        <text x="170" y="35" text-anchor="middle" fill="#f5a623" font-family="Playfair Display,serif" font-size="14" font-weight="700">tmux server</text>
+        <text x="170" y="58" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono,monospace" font-size="10">persistent background process</text>
+        <line x1="170" y1="80" x2="80" y2="120" stroke="#4ecb8d" stroke-width="1.5"/>
+        <line x1="170" y1="80" x2="260" y2="120" stroke="#4ecb8d" stroke-width="1.5"/>
+        <rect x="10" y="120" width="140" height="55" rx="6" fill="#10101a" stroke="#4ecb8d" stroke-width="1.5"/>
+        <text x="80" y="143" text-anchor="middle" fill="#4ecb8d" font-family="Playfair Display,serif" font-size="12" font-weight="700">Session: dev</text>
+        <text x="80" y="163" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono,monospace" font-size="9">3 windows</text>
+        <rect x="190" y="120" width="140" height="55" rx="6" fill="#10101a" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="260" y="143" text-anchor="middle" fill="#a78bfa" font-family="Playfair Display,serif" font-size="12" font-weight="700">Session: ops</text>
+        <text x="260" y="163" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono,monospace" font-size="9">2 windows</text>
+        <line x1="50" y1="175" x2="50" y2="210" stroke="#60a5fa" stroke-width="1.2"/>
+        <line x1="110" y1="175" x2="110" y2="210" stroke="#60a5fa" stroke-width="1.2"/>
+        <rect x="10" y="210" width="80" height="40" rx="5" fill="#181824" stroke="#60a5fa" stroke-width="1"/>
+        <text x="50" y="234" text-anchor="middle" fill="#60a5fa" font-family="JetBrains Mono,monospace" font-size="9">Window 0</text>
+        <rect x="100" y="210" width="80" height="40" rx="5" fill="#181824" stroke="#60a5fa" stroke-width="1"/>
+        <text x="140" y="234" text-anchor="middle" fill="#60a5fa" font-family="JetBrains Mono,monospace" font-size="9">Window 1</text>
+        <line x1="30" y1="250" x2="30" y2="280" stroke="#f87171" stroke-width="1"/>
+        <line x1="70" y1="250" x2="70" y2="280" stroke="#f87171" stroke-width="1"/>
+        <rect x="5" y="280" width="50" height="30" rx="4" fill="#181824" stroke="#f87171" stroke-width="1"/>
+        <text x="30" y="299" text-anchor="middle" fill="#f87171" font-family="JetBrains Mono,monospace" font-size="8">Pane 0</text>
+        <rect x="60" y="280" width="50" height="30" rx="4" fill="#181824" stroke="#f87171" stroke-width="1"/>
+        <text x="85" y="299" text-anchor="middle" fill="#f87171" font-family="JetBrains Mono,monospace" font-size="8">Pane 1</text>
+        <text x="170" y="345" text-anchor="middle" fill="#8888a8" font-family="DM Sans,sans-serif" font-size="10">Server &rarr; Sessions &rarr; Windows &rarr; Panes</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 04 — INSTALLATION ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">03</span>
+    <h2>Installation</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Linux</h3>
+        <pre><code class="language-bash"># Debian / Ubuntu
+sudo apt install tmux
+
+# Fedora / RHEL
+sudo dnf install tmux
+
+# Arch
+sudo pacman -S tmux</code></pre>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">macOS</h3>
+        <pre><code class="language-bash"># Homebrew
+brew install tmux</code></pre>
+      </div>
+      <div class="card purple" style="margin-top:.5em;">
+        <h3 class="p">Windows (WSL)</h3>
+        <pre><code class="language-bash"># Inside WSL (Ubuntu)
+sudo apt install tmux</code></pre>
+      </div>
+    </div>
+    <div>
+      <div class="card blue">
+        <h3 class="b">Verify Installation</h3>
+        <pre><code class="language-bash">$ tmux -V
+tmux 3.4</code></pre>
+      </div>
+      <div class="card amber" style="margin-top:.5em;">
+        <h3 class="a">Your First Session</h3>
+        <pre><code class="language-bash"># Start a new session
+$ tmux
+
+# Start a named session
+$ tmux new -s myproject
+
+# You're now inside tmux!
+# Notice the green status bar
+# at the bottom of the terminal</code></pre>
+      </div>
+      <div class="card red" style="margin-top:.5em;">
+        <h3 class="r">Common Gotcha</h3>
+        <p>If you see <span class="mono r">no server running</span> when you try to attach, it just means there are no active sessions yet &mdash; start one with <code>tmux new</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 05 — PREFIX KEY ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">04</span>
+    <h2>The Prefix Key</h2>
+  </div>
+  <div class="cols cols-6040">
+    <div>
+      <div class="card amber">
+        <h3 class="a">How tmux Commands Work</h3>
+        <p>Every tmux keybinding starts with a <span class="a">prefix key</span>, followed by the actual command key. The default prefix is:</p>
+        <p style="font-size:.7em; text-align:center; margin:.3em 0;"><code style="font-size:1.1em; color:var(--amber);">Ctrl + b</code></p>
+        <p>Press <code>Ctrl+b</code>, <span class="a">release both keys</span>, then press the command key.</p>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">Example: Split Pane</h3>
+        <pre><code class="language-bash"># Split vertically (side by side)
+Ctrl+b  then  %
+
+# Split horizontally (top and bottom)
+Ctrl+b  then  "</code></pre>
+        <p>The prefix is <span class="g">not held down</span> while pressing the command key &mdash; it's a two-step sequence.</p>
+      </div>
+      <div class="card purple" style="margin-top:.5em;">
+        <h3 class="p">Changing the Prefix</h3>
+        <p>Many users remap the prefix to <code>Ctrl+a</code> (closer to the home row) in their <code>.tmux.conf</code>:</p>
+        <pre><code class="language-bash"># ~/.tmux.conf
+unbind C-b
+set -g prefix C-a
+bind C-a send-prefix</code></pre>
+      </div>
+    </div>
+    <div>
+      <div class="card blue">
+        <h3 class="b">Quick Reference</h3>
+        <table>
+          <thead><tr><th>Keys</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><code>Ctrl+b</code></td><td>Prefix (default)</td></tr>
+            <tr><td><code>Prefix ?</code></td><td>List all keybindings</td></tr>
+            <tr><td><code>Prefix :</code></td><td>Command prompt</td></tr>
+            <tr><td><code>Prefix t</code></td><td>Show clock</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card red" style="margin-top:.5em;">
+        <h3 class="r">Notation Guide</h3>
+        <p>Throughout this presentation:</p>
+        <ul>
+          <li><code>Prefix</code> means <code>Ctrl+b</code> (or your custom prefix)</li>
+          <li><code>Prefix x</code> means: press prefix, release, then press <code>x</code></li>
+          <li><code>C-b</code> is shorthand for <code>Ctrl+b</code></li>
+          <li><code>M-x</code> means <code>Alt+x</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 06 — SESSIONS ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">05</span>
+    <h2>Session Management</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Creating Sessions</h3>
+        <pre><code class="language-bash"># New session (auto-named 0, 1, 2...)
+tmux new
+
+# Named session
+tmux new -s project-alpha
+
+# New session starting in a directory
+tmux new -s api -c ~/code/api</code></pre>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">Detach &amp; Reattach</h3>
+        <pre><code class="language-bash"># Detach from current session
+Prefix d
+
+# List all sessions
+tmux ls
+
+# Reattach to a named session
+tmux attach -t project-alpha
+
+# Shorthand
+tmux a -t project-alpha</code></pre>
+        <p>Detaching does <span class="g">not</span> stop processes &mdash; everything keeps running in the background.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card purple">
+        <h3 class="p">Switching Sessions</h3>
+        <pre><code class="language-bash"># Interactive session picker
+Prefix s
+
+# Next / previous session
+Prefix (    &rarr; previous
+Prefix )    &rarr; next
+
+# Switch by name from command line
+tmux switch -t ops</code></pre>
+      </div>
+      <div class="card blue" style="margin-top:.5em;">
+        <h3 class="b">Session Lifecycle</h3>
+        <pre><code class="language-bash"># Rename current session
+Prefix $
+
+# Kill a session
+tmux kill-session -t old-project
+
+# Kill all sessions except current
+tmux kill-session -a
+
+# Kill the tmux server entirely
+tmux kill-server</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 07 — WINDOWS ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">06</span>
+    <h2>Windows</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">What Are Windows?</h3>
+        <p>Windows are <span class="a">tabs</span> within a session. Each window occupies the full terminal and can contain one or more panes.
+          The status bar at the bottom shows your window list.</p>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">Creating &amp; Closing</h3>
+        <pre><code class="language-bash"># Create a new window
+Prefix c
+
+# Close the current window
+Prefix &amp;
+# (confirms: kill window? y/n)
+
+# Or just exit the shell
+$ exit</code></pre>
+      </div>
+      <div class="card purple" style="margin-top:.5em;">
+        <h3 class="p">Renaming Windows</h3>
+        <pre><code class="language-bash"># Rename current window
+Prefix ,
+
+# Then type the new name and
+# press Enter</code></pre>
+        <p>Named windows make it easy to identify what each tab is for: <code>editor</code>, <code>server</code>, <code>claude</code>, etc.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card blue">
+        <h3 class="b">Switching Windows</h3>
+        <table>
+          <thead><tr><th>Keys</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><code>Prefix 0-9</code></td><td>Switch to window by number</td></tr>
+            <tr><td><code>Prefix n</code></td><td>Next window</td></tr>
+            <tr><td><code>Prefix p</code></td><td>Previous window</td></tr>
+            <tr><td><code>Prefix l</code></td><td>Last (most recent) window</td></tr>
+            <tr><td><code>Prefix w</code></td><td>Interactive window picker</td></tr>
+            <tr><td><code>Prefix f</code></td><td>Find window by name</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card red" style="margin-top:.5em;">
+        <h3 class="r">Moving &amp; Reordering</h3>
+        <pre><code class="language-bash"># Move window to a new index
+Prefix .
+# Then type the new index number
+
+# Swap window positions
+tmux swap-window -s 2 -t 0
+
+# Move current window left/right
+# (add to .tmux.conf)
+bind -r &lt; swap-window -t -1
+bind -r &gt; swap-window -t +1</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 08 — PANES ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">07</span>
+    <h2>Panes</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Splitting</h3>
+        <pre><code class="language-bash"># Horizontal split (top / bottom)
+Prefix "
+
+# Vertical split (left / right)
+Prefix %</code></pre>
+        <p>Splits always divide the <span class="a">currently focused</span> pane.</p>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">Navigating Panes</h3>
+        <table>
+          <thead><tr><th>Keys</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><code>Prefix &uarr;&darr;&larr;&rarr;</code></td><td>Move to adjacent pane</td></tr>
+            <tr><td><code>Prefix o</code></td><td>Cycle to next pane</td></tr>
+            <tr><td><code>Prefix ;</code></td><td>Toggle to last active pane</td></tr>
+            <tr><td><code>Prefix q</code></td><td>Show pane numbers (press number to jump)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card purple" style="margin-top:.5em;">
+        <h3 class="p">Closing Panes</h3>
+        <pre><code class="language-bash"># Close current pane
+Prefix x
+# (confirms: kill pane? y/n)
+
+# Or just exit the shell
+$ exit</code></pre>
+      </div>
+    </div>
+    <div>
+      <div class="card blue">
+        <h3 class="b">Resizing Panes</h3>
+        <pre><code class="language-bash"># Resize with prefix + arrow (hold)
+Prefix Ctrl+&uarr;   &rarr; taller
+Prefix Ctrl+&darr;   &rarr; shorter
+Prefix Ctrl+&larr;  &rarr; narrower
+Prefix Ctrl+&rarr; &rarr; wider
+
+# Or from the command prompt
+Prefix :
+resize-pane -D 10  # 10 rows down
+resize-pane -R 20  # 20 cols right</code></pre>
+      </div>
+      <div class="card amber" style="margin-top:.5em;">
+        <h3 class="a">Zoom &amp; Layouts</h3>
+        <pre><code class="language-bash"># Zoom: toggle pane fullscreen
+Prefix z
+# Press again to un-zoom
+
+# Cycle through built-in layouts
+Prefix Space
+
+# Preset layouts
+Prefix M-1  &rarr; even-horizontal
+Prefix M-2  &rarr; even-vertical
+Prefix M-3  &rarr; main-horizontal
+Prefix M-4  &rarr; main-vertical
+Prefix M-5  &rarr; tiled</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 09 — COPY MODE ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">08</span>
+    <h2>Copy Mode &amp; Scrollback</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Entering Copy Mode</h3>
+        <pre><code class="language-bash"># Enter copy mode
+Prefix [
+
+# You can now scroll up/down
+# with arrow keys or Page Up/Down
+
+# Exit copy mode
+q  or  Escape</code></pre>
+        <p>Copy mode is how you <span class="a">scroll back</span> through terminal output in tmux. Without it, scrolling doesn't work as expected.</p>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">Searching</h3>
+        <pre><code class="language-bash"># In copy mode:
+/   &rarr; search forward
+?   &rarr; search backward
+n   &rarr; next match
+N   &rarr; previous match</code></pre>
+        <p>Extremely useful for finding error messages in long Claude Code output.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card purple">
+        <h3 class="p">Selecting &amp; Copying Text</h3>
+        <pre><code class="language-bash"># In copy mode (emacs keys):
+Ctrl+Space  &rarr; start selection
+M-w         &rarr; copy selection
+
+# In copy mode (vi keys):
+Space  &rarr; start selection
+Enter  &rarr; copy selection
+
+# Paste
+Prefix ]</code></pre>
+      </div>
+      <div class="card blue" style="margin-top:.5em;">
+        <h3 class="b">Enable vi Keys (Recommended)</h3>
+        <pre><code class="language-bash"># ~/.tmux.conf
+setw -g mode-keys vi
+
+# Now copy mode uses vi motions:
+# h j k l  &rarr; move cursor
+# v        &rarr; start selection
+# y        &rarr; yank (copy)
+# /        &rarr; search</code></pre>
+      </div>
+      <div class="card red" style="margin-top:.5em;">
+        <h3 class="r">Increase Scrollback</h3>
+        <pre><code class="language-bash"># Default is 2000 lines
+# Increase in .tmux.conf:
+set -g history-limit 50000</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 10 — CONFIGURATION ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">09</span>
+    <h2>Configuration &mdash; .tmux.conf</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Starter Configuration</h3>
+        <pre><code class="language-bash"># ~/.tmux.conf
+
+# Remap prefix to Ctrl+a
+unbind C-b
+set -g prefix C-a
+bind C-a send-prefix
+
+# Enable mouse support
+set -g mouse on
+
+# Start windows and panes at 1
+set -g base-index 1
+setw -g pane-base-index 1
+
+# Vi copy mode
+setw -g mode-keys vi
+
+# Large scrollback
+set -g history-limit 50000
+
+# Faster key repetition
+set -sg escape-time 0
+
+# True colour support
+set -g default-terminal "tmux-256color"
+set -ag terminal-overrides \
+  ",xterm-256color:RGB"</code></pre>
+      </div>
+    </div>
+    <div>
+      <div class="card green">
+        <h3 class="g">Intuitive Splits</h3>
+        <pre><code class="language-bash"># Split with | and -
+bind | split-window -h -c "#{pane_current_path}"
+bind - split-window -v -c "#{pane_current_path}"
+unbind '"'
+unbind %</code></pre>
+        <p>The <code>-c</code> flag opens the new pane in the <span class="g">same directory</span> as the current pane.</p>
+      </div>
+      <div class="card purple" style="margin-top:.5em;">
+        <h3 class="p">Pane Navigation (vim-style)</h3>
+        <pre><code class="language-bash"># Navigate panes with h j k l
+bind h select-pane -L
+bind j select-pane -D
+bind k select-pane -U
+bind l select-pane -R</code></pre>
+      </div>
+      <div class="card blue" style="margin-top:.5em;">
+        <h3 class="b">Reload Config</h3>
+        <pre><code class="language-bash"># Add to .tmux.conf:
+bind r source-file ~/.tmux.conf \;\
+  display "Config reloaded!"
+
+# Then reload with:
+Prefix r</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 11 — STATUS BAR ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">10</span>
+    <h2>Status Bar Customisation</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Status Bar Anatomy</h3>
+        <p>The bar at the bottom of every tmux session has three sections:</p>
+        <ul>
+          <li><span class="a">Left</span> &mdash; session name</li>
+          <li><span class="g">Centre</span> &mdash; window list</li>
+          <li><span class="b">Right</span> &mdash; system info (time, host, etc.)</li>
+        </ul>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">Minimal Dark Theme</h3>
+        <pre><code class="language-bash"># Colours
+set -g status-style "bg=#10101a,fg=#8888a8"
+
+# Left: session name
+set -g status-left \
+  "#[fg=#0a0a0f,bg=#f5a623,bold] #S "
+set -g status-left-length 20
+
+# Right: date and time
+set -g status-right \
+  "#[fg=#4ecb8d] %H:%M #[fg=#8888a8]%d-%b"
+set -g status-right-length 30
+
+# Window tabs
+setw -g window-status-format \
+  " #I:#W "
+setw -g window-status-current-format \
+  "#[fg=#0a0a0f,bg=#a78bfa,bold] #I:#W "
+</code></pre>
+      </div>
+    </div>
+    <div>
+      <div class="card blue">
+        <h3 class="b">Format Variables</h3>
+        <table>
+          <thead><tr><th>Variable</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td><code>#S</code></td><td>Session name</td></tr>
+            <tr><td><code>#I</code></td><td>Window index</td></tr>
+            <tr><td><code>#W</code></td><td>Window name</td></tr>
+            <tr><td><code>#P</code></td><td>Pane index</td></tr>
+            <tr><td><code>#H</code></td><td>Hostname</td></tr>
+            <tr><td><code>#T</code></td><td>Pane title</td></tr>
+            <tr><td><code>%H:%M</code></td><td>Time (24h)</td></tr>
+            <tr><td><code>%d-%b</code></td><td>Date (e.g., 04-Apr)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card purple" style="margin-top:.5em;">
+        <h3 class="p">Pane Borders</h3>
+        <pre><code class="language-bash"># Active pane border colour
+set -g pane-active-border-style \
+  "fg=#f5a623"
+
+# Inactive pane border
+set -g pane-border-style \
+  "fg=#2a2a3a"</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 12 — MOUSE MODE ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">11</span>
+    <h2>Mouse Mode</h2>
+  </div>
+  <div class="cols cols-6040">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Enable Mouse Support</h3>
+        <pre><code class="language-bash"># ~/.tmux.conf
+set -g mouse on</code></pre>
+        <p>With <code>mouse on</code>, you can:</p>
+        <ul>
+          <li><span class="a">Click</span> to select a pane</li>
+          <li><span class="g">Drag</span> pane borders to resize</li>
+          <li><span class="p">Scroll</span> to enter copy mode and browse history</li>
+          <li><span class="b">Click</span> on window names in the status bar</li>
+        </ul>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">Copying with Mouse</h3>
+        <p>When mouse mode is on, click-and-drag selects text in tmux&rsquo;s copy buffer, not the system clipboard. To copy to the system clipboard, hold <span class="g">Shift</span> while selecting.</p>
+        <pre><code class="language-bash"># Alternatively, pipe to clipboard
+# Linux (X11):
+bind -T copy-mode-vi y send -X \
+  copy-pipe-and-cancel "xclip -sel clip"
+
+# macOS:
+bind -T copy-mode-vi y send -X \
+  copy-pipe-and-cancel "pbcopy"</code></pre>
+      </div>
+    </div>
+    <div>
+      <div class="card purple">
+        <h3 class="p">Keyboard vs Mouse</h3>
+        <table>
+          <thead><tr><th>Task</th><th>Mouse</th><th>Keyboard</th></tr></thead>
+          <tbody>
+            <tr><td>Select pane</td><td>Click</td><td><code>Prefix &uarr;&darr;&larr;&rarr;</code></td></tr>
+            <tr><td>Resize pane</td><td>Drag border</td><td><code>Prefix Ctrl+arrow</code></td></tr>
+            <tr><td>Scroll</td><td>Scroll wheel</td><td><code>Prefix [</code></td></tr>
+            <tr><td>Switch window</td><td>Click tab</td><td><code>Prefix 0-9</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card red" style="margin-top:.5em;">
+        <h3 class="r">Trade-offs</h3>
+        <ul>
+          <li><span class="r">Pro:</span> Intuitive for beginners, fast for occasional resizing</li>
+          <li><span class="r">Con:</span> Can interfere with terminal app mouse events</li>
+          <li><span class="r">Tip:</span> Most power users leave mouse <span class="g">on</span> but primarily use keyboard shortcuts</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 13 — DETACH / SSH ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">12</span>
+    <h2>Surviving Disconnects</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">The Killer Feature</h3>
+        <p>tmux sessions persist independently of your terminal connection. If your SSH drops, your laptop goes to sleep, or you accidentally close a tab &mdash;
+          <span class="a">everything keeps running</span>.</p>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">SSH Workflow</h3>
+        <pre><code class="language-bash"># Connect to remote server
+$ ssh user@server
+
+# Start (or reattach) tmux session
+$ tmux new -s work
+# ... or ...
+$ tmux a -t work
+
+# Do your work...
+# Connection drops? No problem.
+
+# Reconnect later:
+$ ssh user@server
+$ tmux a -t work
+# Everything is exactly as you left it</code></pre>
+      </div>
+    </div>
+    <div>
+      <div class="card purple">
+        <h3 class="p">Long-Running Processes</h3>
+        <p>Perfect for tasks that take hours:</p>
+        <ul>
+          <li>Model training runs</li>
+          <li>Large data migrations</li>
+          <li>Compilation of large projects</li>
+          <li>Running Claude Code on complex tasks</li>
+          <li>Server processes and log monitoring</li>
+        </ul>
+        <p>Start the process in tmux, detach with <code>Prefix d</code>, and come back whenever you want.</p>
+      </div>
+      <div class="card blue" style="margin-top:.5em;">
+        <h3 class="b">Pro Tip: Auto-Attach</h3>
+        <pre><code class="language-bash"># Add to your .bashrc or .zshrc:
+# Auto-attach to tmux on SSH login
+if [ -n "$SSH_CONNECTION" ] && \
+   [ -z "$TMUX" ]; then
+  tmux attach -t ssh || tmux new -s ssh
+fi</code></pre>
+        <p>Now you <span class="b">always</span> land in a tmux session when connecting via SSH.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 14 — CLAUDE CODE BASICS ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">13</span>
+    <h2>Claude Code in tmux</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Why tmux + Claude Code?</h3>
+        <ul>
+          <li><span class="a">Persistence</span> &mdash; Claude Code can work for hours; tmux keeps it alive if your connection drops</li>
+          <li><span class="a">Multitasking</span> &mdash; run Claude in one pane while you test, review, or code in another</li>
+          <li><span class="a">Monitoring</span> &mdash; watch Claude's output alongside build logs, test results, or git status</li>
+          <li><span class="a">Parallel agents</span> &mdash; run multiple Claude Code instances on different tasks</li>
+        </ul>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">Getting Started</h3>
+        <pre><code class="language-bash"># Create a session for your project
+tmux new -s myproject -c ~/code/myproject
+
+# Start Claude Code
+claude
+
+# Split a pane to keep a shell handy
+Prefix %
+
+# Now you have Claude on the left,
+# shell on the right</code></pre>
+      </div>
+    </div>
+    <div>
+      <div class="card purple">
+        <h3 class="p">Recommended Layout</h3>
+        <svg class="diagram" viewBox="0 0 340 200" width="340">
+          <rect x="5" y="5" width="330" height="170" rx="6" fill="none" stroke="#2a2a3a" stroke-width="1.5"/>
+          <rect x="8" y="8" width="195" height="164" rx="4" fill="#10101a" stroke="#f5a623" stroke-width="1.5"/>
+          <text x="105" y="85" text-anchor="middle" fill="#f5a623" font-family="JetBrains Mono,monospace" font-size="12" font-weight="500">Claude Code</text>
+          <text x="105" y="105" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono,monospace" font-size="9">main interaction</text>
+          <rect x="208" y="8" width="124" height="80" rx="4" fill="#10101a" stroke="#4ecb8d" stroke-width="1.5"/>
+          <text x="270" y="45" text-anchor="middle" fill="#4ecb8d" font-family="JetBrains Mono,monospace" font-size="11" font-weight="500">Shell</text>
+          <text x="270" y="62" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono,monospace" font-size="9">git, tests</text>
+          <rect x="208" y="92" width="124" height="80" rx="4" fill="#10101a" stroke="#a78bfa" stroke-width="1.5"/>
+          <text x="270" y="128" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono,monospace" font-size="11" font-weight="500">Logs / Watch</text>
+          <text x="270" y="145" text-anchor="middle" fill="#8888a8" font-family="JetBrains Mono,monospace" font-size="9">tail -f, npm run</text>
+          <rect x="5" y="175" width="330" height="18" rx="3" fill="#10101a" stroke="#2a2a3a" stroke-width="1"/>
+          <text x="15" y="188" fill="#f5a623" font-family="JetBrains Mono,monospace" font-size="8" font-weight="500">myproject</text>
+          <text x="105" y="188" fill="#a78bfa" font-family="JetBrains Mono,monospace" font-size="8">0:claude* 1:shell 2:logs</text>
+          <text x="310" y="188" text-anchor="end" fill="#4ecb8d" font-family="JetBrains Mono,monospace" font-size="8">14:32</text>
+        </svg>
+      </div>
+      <div class="card blue" style="margin-top:.5em;">
+        <h3 class="b">Useful Shortcuts While Claude Works</h3>
+        <table>
+          <thead><tr><th>Action</th><th>How</th></tr></thead>
+          <tbody>
+            <tr><td>Switch to shell pane</td><td><code>Prefix &rarr;</code></td></tr>
+            <tr><td>Zoom into Claude pane</td><td><code>Prefix z</code></td></tr>
+            <tr><td>Scroll Claude output</td><td><code>Prefix [</code></td></tr>
+            <tr><td>Detach &amp; let it run</td><td><code>Prefix d</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 15 — HEADLESS / NON-INTERACTIVE ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">14</span>
+    <h2>Headless Claude Code</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Non-Interactive Mode</h3>
+        <p>Claude Code supports a <span class="a">headless</span> (non-interactive) mode via the <code>-p</code> flag &mdash; perfect for fire-and-forget tasks in tmux:</p>
+        <pre><code class="language-bash"># Send a prompt non-interactively
+claude -p "Refactor the auth module \
+  to use JWT tokens"
+
+# With auto-accept for tool use
+claude -p "Add unit tests for utils.ts" \
+  --allowedTools Edit,Write,Bash</code></pre>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">Fire &amp; Forget in tmux</h3>
+        <pre><code class="language-bash"># Create a new window for a task
+Prefix c
+
+# Run Claude headless
+claude -p "Review all Python files in \
+  src/ for security issues and write \
+  a report to SECURITY_REVIEW.md" \
+  --allowedTools Read,Write,Glob,Grep
+
+# Detach and let it work
+Prefix d
+
+# Come back later to check the result
+tmux a</code></pre>
+      </div>
+    </div>
+    <div>
+      <div class="card purple">
+        <h3 class="p">Parallel Tasks</h3>
+        <pre><code class="language-bash"># Window 0: Claude on backend
+claude -p "Add input validation \
+  to all API endpoints"
+
+# Window 1: Claude on frontend
+claude -p "Add loading states \
+  to all data-fetching components"
+
+# Window 2: Claude on tests
+claude -p "Write integration tests \
+  for the payment flow"</code></pre>
+        <p>Each window runs an <span class="p">independent Claude instance</span>, working on a different part of the codebase simultaneously.</p>
+      </div>
+      <div class="card red" style="margin-top:.5em;">
+        <h3 class="r">Caution</h3>
+        <ul>
+          <li>Multiple Claude instances can create <span class="r">merge conflicts</span> if they edit the same files</li>
+          <li>Assign each instance a <span class="g">distinct area</span> of the codebase</li>
+          <li>Review all changes before committing</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 16 — MULTI-PROJECT ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">15</span>
+    <h2>Multi-Project Workflows</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">One Session per Project</h3>
+        <pre><code class="language-bash"># Create sessions for each project
+tmux new -s api -c ~/code/api -d
+tmux new -s frontend -c ~/code/app -d
+tmux new -s infra -c ~/code/terraform -d
+
+# The -d flag creates without attaching
+
+# Now switch between them:
+Prefix s   &rarr; session picker
+Prefix (   &rarr; previous session
+Prefix )   &rarr; next session</code></pre>
+        <p>Each session starts in its <span class="a">own directory</span>, with its own windows and panes.</p>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">Naming Convention</h3>
+        <p>Keep session names short and descriptive:</p>
+        <ul>
+          <li><code>api</code> &mdash; backend REST API</li>
+          <li><code>web</code> &mdash; frontend application</li>
+          <li><code>ops</code> &mdash; infrastructure / DevOps</li>
+          <li><code>db</code> &mdash; database migrations</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card purple">
+        <h3 class="p">Scripted Workspace Setup</h3>
+        <pre><code class="language-bash">#!/bin/bash
+# ~/bin/dev-start.sh
+
+# API session
+tmux new -s api -c ~/code/api -d
+tmux send-keys -t api "claude" Enter
+
+# Frontend session
+tmux new -s web -c ~/code/app -d
+tmux send-keys -t web "npm run dev" Enter
+tmux split-window -t web -h \
+  -c ~/code/app
+tmux send-keys -t web "claude" Enter
+
+# Attach to the API session
+tmux attach -t api</code></pre>
+        <p>Run <code>./dev-start.sh</code> once and your entire dev environment is ready.</p>
+      </div>
+      <div class="card blue" style="margin-top:.5em;">
+        <h3 class="b">tmux send-keys</h3>
+        <p>The <code>send-keys</code> command types text into a pane programmatically &mdash; ideal for automation scripts that launch servers, editors, or Claude Code.</p>
+        <pre><code class="language-bash"># Send to a specific session:window
+tmux send-keys -t api:0 "make test" Enter</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 17 — CHEAT SHEET ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">16</span>
+    <h2>Cheat Sheet</h2>
+  </div>
+  <div class="cols cols-3">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Sessions</h3>
+        <table>
+          <tbody>
+            <tr><td><code>tmux new -s name</code></td><td>New session</td></tr>
+            <tr><td><code>tmux a -t name</code></td><td>Attach</td></tr>
+            <tr><td><code>tmux ls</code></td><td>List sessions</td></tr>
+            <tr><td><code>Prefix d</code></td><td>Detach</td></tr>
+            <tr><td><code>Prefix s</code></td><td>Session picker</td></tr>
+            <tr><td><code>Prefix $</code></td><td>Rename session</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="card green">
+        <h3 class="g">Windows</h3>
+        <table>
+          <tbody>
+            <tr><td><code>Prefix c</code></td><td>New window</td></tr>
+            <tr><td><code>Prefix ,</code></td><td>Rename window</td></tr>
+            <tr><td><code>Prefix n</code></td><td>Next window</td></tr>
+            <tr><td><code>Prefix p</code></td><td>Previous window</td></tr>
+            <tr><td><code>Prefix 0-9</code></td><td>Go to window #</td></tr>
+            <tr><td><code>Prefix &amp;</code></td><td>Kill window</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="card purple">
+        <h3 class="p">Panes</h3>
+        <table>
+          <tbody>
+            <tr><td><code>Prefix %</code></td><td>Split vertical</td></tr>
+            <tr><td><code>Prefix "</code></td><td>Split horizontal</td></tr>
+            <tr><td><code>Prefix &uarr;&darr;&larr;&rarr;</code></td><td>Navigate</td></tr>
+            <tr><td><code>Prefix z</code></td><td>Zoom toggle</td></tr>
+            <tr><td><code>Prefix x</code></td><td>Kill pane</td></tr>
+            <tr><td><code>Prefix Space</code></td><td>Cycle layouts</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="cols cols-2" style="margin-top:.5em;">
+    <div>
+      <div class="card blue">
+        <h3 class="b">Copy Mode</h3>
+        <table>
+          <tbody>
+            <tr><td><code>Prefix [</code></td><td>Enter copy mode</td></tr>
+            <tr><td><code>/ or ?</code></td><td>Search fwd / back</td></tr>
+            <tr><td><code>Space</code></td><td>Start selection (vi)</td></tr>
+            <tr><td><code>Enter</code></td><td>Copy selection (vi)</td></tr>
+            <tr><td><code>Prefix ]</code></td><td>Paste</td></tr>
+            <tr><td><code>q</code></td><td>Exit copy mode</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="card red">
+        <h3 class="r">Command Line</h3>
+        <table>
+          <tbody>
+            <tr><td><code>tmux ls</code></td><td>List sessions</td></tr>
+            <tr><td><code>tmux a -t name</code></td><td>Attach to session</td></tr>
+            <tr><td><code>tmux kill-session -t x</code></td><td>Kill session</td></tr>
+            <tr><td><code>tmux kill-server</code></td><td>Kill everything</td></tr>
+            <tr><td><code>tmux send-keys</code></td><td>Send input to pane</td></tr>
+            <tr><td><code>Prefix :</code></td><td>Command prompt</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 18 — ADVANCED FEATURES ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">17</span>
+    <h2>Advanced Features</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Session Groups</h3>
+        <pre><code class="language-bash"># Share a session across terminals
+# (each can view different windows)
+tmux new -s main
+# In another terminal:
+tmux new -t main -s viewer
+
+# Both see the same session,
+# but can look at different windows</code></pre>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">Moving Panes Between Windows</h3>
+        <pre><code class="language-bash"># Break pane into its own window
+Prefix !
+
+# Join a pane from another window
+# (from command prompt):
+Prefix :
+join-pane -s 2.1  # source win:pane
+join-pane -t 0    # target window</code></pre>
+      </div>
+      <div class="card purple" style="margin-top:.5em;">
+        <h3 class="p">Synchronise Panes</h3>
+        <pre><code class="language-bash"># Type in ALL panes simultaneously
+Prefix :
+setw synchronize-panes on
+
+# Useful for running the same command
+# on multiple servers at once
+
+# Turn off:
+setw synchronize-panes off</code></pre>
+      </div>
+    </div>
+    <div>
+      <div class="card blue">
+        <h3 class="b">Capture &amp; Save Output</h3>
+        <pre><code class="language-bash"># Capture visible pane content
+tmux capture-pane -p > output.txt
+
+# Capture entire scrollback
+tmux capture-pane -pS - > full.txt
+
+# Pipe a pane's output to a file
+tmux pipe-pane -o "cat >> ~/log.txt"
+# Stop piping:
+tmux pipe-pane</code></pre>
+        <p>Great for saving Claude Code's responses for later review.</p>
+      </div>
+      <div class="card red" style="margin-top:.5em;">
+        <h3 class="r">Environment Variables</h3>
+        <pre><code class="language-bash"># Pass env vars to new sessions
+tmux new -s work \
+  -e "NODE_ENV=development" \
+  -e "DEBUG=app:*"
+
+# Update environment in session
+tmux set-environment -t work \
+  API_KEY "sk-..."
+
+# Show session environment
+tmux show-environment -t work</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 19 — TROUBLESHOOTING ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">18</span>
+    <h2>Troubleshooting</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Colours Look Wrong</h3>
+        <pre><code class="language-bash"># Add to .tmux.conf:
+set -g default-terminal "tmux-256color"
+set -ag terminal-overrides \
+  ",xterm-256color:RGB"
+
+# Make sure your terminal emulator
+# supports true colour (most do)</code></pre>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">Prefix Key Not Working</h3>
+        <ul>
+          <li>Check you're pressing <code>Ctrl+b</code>, not <code>Ctrl+B</code> (no Shift)</li>
+          <li>Make sure you <span class="g">release</span> the prefix before pressing the command key</li>
+          <li>Verify your config: <code>tmux show -g prefix</code></li>
+          <li>If in nested tmux, use <code>Prefix Prefix key</code> to send to inner session</li>
+        </ul>
+      </div>
+      <div class="card purple" style="margin-top:.5em;">
+        <h3 class="p">Nested tmux Sessions</h3>
+        <pre><code class="language-bash"># SSH into server with its own tmux?
+# Send prefix to inner session:
+Prefix Prefix key
+
+# Or remap inner session to C-a
+# and keep outer as C-b</code></pre>
+      </div>
+    </div>
+    <div>
+      <div class="card blue">
+        <h3 class="b">Session Won't Attach</h3>
+        <pre><code class="language-bash"># "sessions should be nested" error
+# You're already in tmux! Either:
+unset TMUX   # then attach
+# or use session switching instead:
+Prefix s
+
+# "no sessions" error
+tmux ls  # confirms no sessions
+tmux new -s fresh  # start one</code></pre>
+      </div>
+      <div class="card red" style="margin-top:.5em;">
+        <h3 class="r">Claude Code Display Issues</h3>
+        <ul>
+          <li>If Claude Code's UI renders oddly, ensure your pane is <span class="r">wide enough</span> (at least 80 columns)</li>
+          <li>Use <code>Prefix z</code> to zoom the Claude pane to full screen</li>
+          <li>Set <code>TERM=xterm-256color</code> if colours are wrong</li>
+          <li>Increase scrollback: <code>set -g history-limit 50000</code></li>
+        </ul>
+      </div>
+      <div class="card amber" style="margin-top:.5em;">
+        <h3 class="a">Kill a Frozen Pane</h3>
+        <pre><code class="language-bash"># If a pane is unresponsive:
+Prefix x   &rarr; kill-pane (confirm)
+
+# Nuclear option:
+tmux kill-pane -t 2</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 20 — COMPLETE CONFIG ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">19</span>
+    <h2>Complete .tmux.conf</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">Recommended Configuration</h3>
+        <pre><code class="language-bash"># ~/.tmux.conf — opinionated starter
+
+# ── Prefix ──
+unbind C-b
+set -g prefix C-a
+bind C-a send-prefix
+
+# ── General ──
+set -g mouse on
+set -g base-index 1
+setw -g pane-base-index 1
+set -g renumber-windows on
+set -sg escape-time 0
+set -g history-limit 50000
+setw -g mode-keys vi
+
+# ── Terminal ──
+set -g default-terminal "tmux-256color"
+set -ag terminal-overrides \
+  ",xterm-256color:RGB"
+
+# ── Splits ──
+bind | split-window -h \
+  -c "#{pane_current_path}"
+bind - split-window -v \
+  -c "#{pane_current_path}"
+unbind '"'
+unbind %</code></pre>
+      </div>
+    </div>
+    <div>
+      <div class="card green">
+        <h3 class="g">Continued...</h3>
+        <pre><code class="language-bash"># ── Navigation ──
+bind h select-pane -L
+bind j select-pane -D
+bind k select-pane -U
+bind l select-pane -R
+
+# ── Resize ──
+bind -r H resize-pane -L 5
+bind -r J resize-pane -D 5
+bind -r K resize-pane -U 5
+bind -r L resize-pane -R 5
+
+# ── Reload ──
+bind r source-file ~/.tmux.conf \;\
+  display "Config reloaded!"
+
+# ── Status Bar ──
+set -g status-style "bg=#10101a,fg=#8888a8"
+set -g status-left \
+  "#[fg=#0a0a0f,bg=#f5a623,bold] #S "
+set -g status-right \
+  "#[fg=#4ecb8d] %H:%M #[fg=#8888a8]%d-%b"
+setw -g window-status-format " #I:#W "
+setw -g window-status-current-format \
+  "#[fg=#0a0a0f,bg=#a78bfa,bold] #I:#W "
+
+# ── Borders ──
+set -g pane-active-border-style \
+  "fg=#f5a623"
+set -g pane-border-style "fg=#2a2a3a"</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SLIDE 21 — SUMMARY ═══════════════════════════════ -->
+<section data-background-color="#0a0a0f">
+  <div class="slide-hdr">
+    <span class="tag">20</span>
+    <h2>Summary &amp; Next Steps</h2>
+  </div>
+  <div class="cols cols-2">
+    <div>
+      <div class="card amber">
+        <h3 class="a">What We Covered</h3>
+        <ul>
+          <li>tmux fundamentals &mdash; server, sessions, windows, panes</li>
+          <li>The prefix key and core keybindings</li>
+          <li>Session management and persistence</li>
+          <li>Copy mode, scrollback, and searching</li>
+          <li>Configuration and status bar theming</li>
+          <li>Running Claude Code effectively in tmux</li>
+          <li>Headless mode and parallel agent workflows</li>
+          <li>Multi-project workspace automation</li>
+        </ul>
+      </div>
+      <div class="card green" style="margin-top:.5em;">
+        <h3 class="g">Key Takeaway</h3>
+        <p>tmux transforms your terminal from a single, fragile window into a <span class="g">persistent, multi-pane workspace</span>.
+          Combined with Claude Code, it enables powerful workflows &mdash; fire-and-forget tasks, parallel agents, and uninterrupted long-running sessions.</p>
+      </div>
+    </div>
+    <div>
+      <div class="card purple">
+        <h3 class="p">Recommended Reading</h3>
+        <ul>
+          <li><span class="p">tmux 2</span> by Brian P. Hogan (Pragmatic Bookshelf)</li>
+          <li>The official tmux wiki on GitHub</li>
+          <li><code>man tmux</code> &mdash; comprehensive and well-written</li>
+          <li>Claude Code documentation at <code>claude.ai</code></li>
+        </ul>
+      </div>
+      <div class="card blue" style="margin-top:.5em;">
+        <h3 class="b">Practice Exercises</h3>
+        <ol>
+          <li>Create a named tmux session and split it into three panes</li>
+          <li>Detach, close your terminal, then reattach</li>
+          <li>Customise your <code>.tmux.conf</code> with the config from slide 19</li>
+          <li>Run Claude Code in one pane while running tests in another</li>
+          <li>Write a shell script that sets up your ideal workspace layout</li>
+        </ol>
+      </div>
+      <div class="ss-row" style="margin-top:1em;">
+        <span class="ss-node done">Learn</span>
+        <span class="ss-arrow">&rarr;</span>
+        <span class="ss-node done">Configure</span>
+        <span class="ss-arrow">&rarr;</span>
+        <span class="ss-node active">Practice</span>
+        <span class="ss-arrow">&rarr;</span>
+        <span class="ss-node">Master</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/plugin/highlight/highlight.min.js"></script>
+<script>
+Reveal.initialize({
+  hash: true,
+  slideNumber: 'c/t',
+  transition: 'fade',
+  transitionSpeed: 'fast',
+  controls: true,
+  progress: true,
+  center: false,
+  width: 1100,
+  height: 900,
+  margin: 0.01,
+  plugins: [RevealHighlight],
+  highlight: { theme: 'monokai' }
+});
+</script>
+<script>
+(function(){
+  var h = Reveal.getConfig().height || 900;
+  var m = Reveal.getConfig().margin || 0.02;
+  var maxH = Math.floor(h * (1 - 2 * m)) + 'px';
+  function fixSlides(){
+    document.querySelectorAll('.reveal .slides>section,.reveal .slides>section>section').forEach(function(s){
+      s.style.display = 'block';
+      s.style.maxHeight = maxH;
+    });
+  }
+  Reveal.on('ready', fixSlides);
+  Reveal.on('slidechanged', fixSlides);
+})();
+</script>
+</body>
+</html>
