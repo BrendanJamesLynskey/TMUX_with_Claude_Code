@@ -49,6 +49,10 @@ An interactive Reveal.js presentation covering tmux — terminal multiplexing, s
 
 Single self-contained `index.html` — no build step, no npm, no dependencies to install.
 
+## Markdown Version
+
+A complete markdown reference of all slide content is available in [`presentation.md`](presentation.md).
+
 ## References
 
 tmux wiki — github.com/tmux/tmux/wiki · Brian P. Hogan, *tmux 2: Productive Mouse-Free Development*, Pragmatic Bookshelf, 2016 · Claude Code documentation — claude.ai
