@@ -788,23 +788,23 @@ Prefix r</code></pre>
       <div class="card green" style="margin-top:.5em;">
         <h3 class="g">Minimal Dark Theme</h3>
         <pre><code class="language-bash"># Colours
-set -g status-style "bg=#1c1f44,fg=#9093ba"
+set -g status-style "bg=#10101a,fg=#8888a8"
 
 # Left: session name
 set -g status-left \
-  "#[fg=#17193a,bg=#efba4d,bold] #S "
+  "#[fg=#0a0a0f,bg=#f5a623,bold] #S "
 set -g status-left-length 20
 
 # Right: date and time
 set -g status-right \
-  "#[fg=#9dcba3] %H:%M #[fg=#9093ba]%d-%b"
+  "#[fg=#4ecb8d] %H:%M #[fg=#8888a8]%d-%b"
 set -g status-right-length 30
 
 # Window tabs
 setw -g window-status-format \
   " #I:#W "
 setw -g window-status-current-format \
-  "#[fg=#17193a,bg=#c2aef4,bold] #I:#W "
+  "#[fg=#0a0a0f,bg=#a78bfa,bold] #I:#W "
 </code></pre>
       </div>
     </div>
@@ -829,11 +829,11 @@ setw -g window-status-current-format \
         <h3 class="p">Pane Borders</h3>
         <pre><code class="language-bash"># Active pane border colour
 set -g pane-active-border-style \
-  "fg=#efba4d"
+  "fg=#f5a623"
 
 # Inactive pane border
 set -g pane-border-style \
-  "fg=#363c6c"</code></pre>
+  "fg=#2a2a3a"</code></pre>
       </div>
     </div>
   </div>
@@ -1457,19 +1457,19 @@ bind r source-file ~/.tmux.conf \;\
   display "Config reloaded!"
 
 # ── Status Bar ──
-set -g status-style "bg=#1c1f44,fg=#9093ba"
+set -g status-style "bg=#10101a,fg=#8888a8"
 set -g status-left \
-  "#[fg=#17193a,bg=#efba4d,bold] #S "
+  "#[fg=#0a0a0f,bg=#f5a623,bold] #S "
 set -g status-right \
-  "#[fg=#9dcba3] %H:%M #[fg=#9093ba]%d-%b"
+  "#[fg=#4ecb8d] %H:%M #[fg=#8888a8]%d-%b"
 setw -g window-status-format " #I:#W "
 setw -g window-status-current-format \
-  "#[fg=#17193a,bg=#c2aef4,bold] #I:#W "
+  "#[fg=#0a0a0f,bg=#a78bfa,bold] #I:#W "
 
 # ── Borders ──
 set -g pane-active-border-style \
-  "fg=#efba4d"
-set -g pane-border-style "fg=#363c6c"</code></pre>
+  "fg=#f5a623"
+set -g pane-border-style "fg=#2a2a3a"</code></pre>
       </div>
     </div>
   </div>
